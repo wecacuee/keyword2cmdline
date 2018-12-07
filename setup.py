@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(name='keyword2cmdline',
       description='Keyword arguments of a function as command-line arguments',
       author='Vikas Dhiman',
-      url='git@github.com:wecacuee/keyword2cmdline.git',
+      url='https://github.com/wecacuee/keyword2cmdline',
       author_email='dhiman@umich.edu',
       version='0.1.0',
       license='MIT',
