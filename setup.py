@@ -14,6 +14,6 @@ setup(name='keyword2cmdline',
           "Operating System :: OS Independent",
       ),
       python_requires='>=3.5',
-      packages=['keyword2cmdline.py'],
+      py_modules=['keyword2cmdline'],
       setup_requires=["pytest-runner"],
       tests_require=["pytest"])
