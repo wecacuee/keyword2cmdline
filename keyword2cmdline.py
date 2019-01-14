@@ -34,10 +34,18 @@ def argparse_req_defaults(k):
     return dict(option_strings = ("{}".format(k),))
 
 
+class opts(dict):
+    """ Token special class """
+    pass
+
+
 def argparse_opt_defaults(k, default):
-    return dict(option_strings = ('--{}'.format(k),),
-                type = type(default),
-                default = default)
+    default_apopts = dict(option_strings = ('--{}'.format(k),),
+                          type = type(default),
+                          default = default)
+    return (dict(default_apopts, **default)
+            if isinstance(default, opts)
+            else default_apopts)
 
 
 def foreach_argument(parser, defaults):
@@ -73,7 +81,7 @@ def argparser_from_func_sig(func,
                             foreach_argument_cb = foreach_argument):
     """
     """
-    parser = parser_factory()
+    parser = parser_factory(description=func.__doc__ or "")
     for k, kw in add_argument_args_from_func_sig(func).items():
         foreach_argument_cb(parser, dict(kw, **argparseopts.get(k, dict())))
     return parser
