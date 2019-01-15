@@ -39,12 +39,15 @@ class opts(dict):
     pass
 
 
-def argparse_opt_defaults(k, default):
+def argparse_opt_defaults(k, opts_or_default):
+    default = (opts_or_default.get('default')
+               if isinstance(opts_or_default, opts)
+               else opts_or_default)
     default_apopts = dict(option_strings = ('--{}'.format(k),),
                           type = type(default),
                           default = default)
-    return (dict(default_apopts, **default)
-            if isinstance(default, opts)
+    return (dict(default_apopts, **opts_or_default)
+            if isinstance(opts_or_default, opts)
             else default_apopts)
 
 
