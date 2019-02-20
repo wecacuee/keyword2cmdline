@@ -51,13 +51,31 @@ $ python examples/hello_world.py
 Hello world!!
 ```
 
+``` python-console
+>>> from examples.hello_world import main
+>>> main(sys_args = [])
+Hello world!!
+```
+
 ``` bash
 $ python examples/hello_world.py --exclamation_number 10
 Hello world!!!!!!!!!!
 ```
 
+```python-console
+>>> from examples.hello_world import main
+>>> main(sys_args = "--exclamation_number 10")
+Hello world!!!!!!!!!!
+```
+
 ``` bash
 $ python examples/hello_world.py --language hi.IN
+नमस्ते दुनिया!!
+```
+
+```python-console
+>>> from examples.hello_world import main
+>>> main(sys_args = "--language hi.IN".split())
 नमस्ते दुनिया!!
 ```
 
@@ -80,6 +98,7 @@ def main(text="Hello world",
          exclamation_sign="!",
          exclamation=opts(
                default=True,
+               type=bool,
                help="""Whether to use exclamation sign or not. Use empty string '' for False""")):
      ...
      

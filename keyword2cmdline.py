@@ -2,18 +2,22 @@ import functools
 import inspect
 import sys
 import argparse
+from functools import partial
 
 
 def func_required_args_from_sig(func):
     return [k
             for k, p in inspect.signature(func).parameters.items()
-            if p.default is inspect._empty]
+            if p.default is inspect._empty and
+            (p.kind is inspect.Parameter.POSITIONAL_ONLY or
+             p.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD)]
 
 
 def func_kwonlydefaults_from_sig(func):
     return {k: p.default
             for k, p in inspect.signature(func).parameters.items()
-            if p.default is not inspect._empty}
+            if p.default is not inspect._empty and
+            p.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD}
 
 
 def func_kwonlydefaults(func):
@@ -89,8 +93,29 @@ def argparser_from_func_sig(func,
     return parser
 
 
+class ArgParserKWArgs:
+    def __init__(self, parser_fac, func, type_conv=str, **kw):
+        self.parser = parser_fac(func)
+        self.func = func
+        self.type_conv = type_conv
+
+    def _accepts_var_kw(self, func):
+        return any(p.kind == inspect.Parameter.VAR_KEYWORD
+                   for k, p in inspect.signature(func).parameters.items())
+
+    def parse_args(self, sys_args):
+        if self._accepts_var_kw(self.func):
+            args, unknown = self.parser.parse_known_args(sys_args)
+            for a in unknown:
+                if a.startswith("--"):
+                    self.parser.add_argument(a, type=self.type_conv)
+
+        return self.parser.parse_args(sys_args)
+
+
 def command(func,
-            parser_factory = argparser_from_func_sig,
+            parser_factory = partial(ArgParserKWArgs,
+                                     argparser_from_func_sig),
             sys_args_gen = lambda: sys.argv[1:]):
     """
     >>> @command
@@ -103,6 +128,14 @@ def command(func,
     >>> gotY = main(sys_args = "Y --a 2 --c D".split())
     >>> expectedY = {'x': 'Y', 'a': 2, 'b': 2, 'c': 'D'}
     >>> gotY == expectedY
+    True
+
+    >>> @command
+    ... def main(**kw):
+    ...     return kw
+    >>> got = main(sys_args = "--a 2 --b abc".split())
+    >>> expected = {'b': 'abc', 'a': '2'}
+    >>> got == expected
     True
     """
     parser = parser_factory(func)

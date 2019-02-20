@@ -15,6 +15,7 @@ def main(text="Hello world",
          # argparse.ArgumentParser.add_argument()
          exclamation=opts(
              default=True,
+             type=bool,
              help="""Whether to use exclamation sign or not. Use empty string '' for False.""")):
     """
     Prints hello world with desired number of exclamation signs
