@@ -44,11 +44,10 @@ def argparse_opt_defaults(k, opts_or_default):
                if isinstance(opts_or_default, opts)
                else opts_or_default)
     default_apopts = dict(option_strings = ('--{}'.format(k),),
-                          type = type(default),
                           default = default)
     return (dict(default_apopts, **opts_or_default)
             if isinstance(opts_or_default, opts)
-            else default_apopts)
+            else dict(default_apopts, type=type(default)))
 
 
 def foreach_argument(parser, defaults):

@@ -5,7 +5,7 @@ setup(name='keyword2cmdline',
       author='Vikas Dhiman',
       url='https://github.com/wecacuee/keyword2cmdline',
       author_email='dhiman@umich.edu',
-      version='0.2.0',
+      version='0.2.1',
       license='MIT',
       classifiers=(
           'Development Status :: 3 - Alpha',
