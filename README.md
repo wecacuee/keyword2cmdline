@@ -86,6 +86,14 @@ $ python examples/hello_world.py --language hi.IN
 For boolean variables, any string is `True` but empty string '' is `False`
 ``` bash
 $ python examples/hello_world.py --exclamation ''
+Hello world
+```
+
+``` python-console
+>>> from examples.hello_world import main
+>>> main(sys_args = ["--exclamation", ""])
+Hello world
+
 ```
 
 To add help and more customization to the `ArgumentParser.add_argument()` see the example in 
@@ -135,8 +143,18 @@ optional arguments:
   --exclamation_number EXCLAMATION_NUMBER
 ```
 
+## New feature in v1.0: Support for Variational **kwargs
 
+``` python-console
+>>> from keyword2cmdline import command
+>>> first = lambda xs: xs[0]
+>>> @command
+... def main(text="sum", **kw):
+...     return dict(kw, text=text)
+>>> list(sorted(main(sys_args = "--text sum --a 1 --b 2 --c 3".split()).items(), key=first))
+[('a', '1'), ('b', '2'), ('c', '3'), ('text', 'sum')]
 
+```
 
 
 
