@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/wecacuee/keyword2cmdline.svg?branch=master)](https://travis-ci.org/wecacuee/keyword2cmdline)
 # Keywords to command line arguments
 
 Convert your function with keyword arguments into command line arguments with one line of code.
