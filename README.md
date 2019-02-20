@@ -55,6 +55,7 @@ Hello world!!
 >>> from examples.hello_world import main
 >>> main(sys_args = [])
 Hello world!!
+
 ```
 
 ``` bash
@@ -64,8 +65,9 @@ Hello world!!!!!!!!!!
 
 ```python-console
 >>> from examples.hello_world import main
->>> main(sys_args = "--exclamation_number 10")
+>>> main(sys_args = "--exclamation_number 10".split())
 Hello world!!!!!!!!!!
+
 ```
 
 ``` bash
@@ -77,6 +79,7 @@ $ python examples/hello_world.py --language hi.IN
 >>> from examples.hello_world import main
 >>> main(sys_args = "--language hi.IN".split())
 नमस्ते दुनिया!!
+
 ```
 
 For boolean variables, any string is `True` but empty string '' is `False`
