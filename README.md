@@ -83,7 +83,7 @@ $ python examples/hello_world.py --language hi.IN
 
 ```
 
-For boolean variables, any string is `True` but empty string '' is `False`
+For boolean variables, any string is `True` but empty string '' is `False` (you can customize that)
 ``` bash
 $ python examples/hello_world.py --exclamation ''
 Hello world
@@ -156,5 +156,28 @@ optional arguments:
 
 ```
 
+## New feature in v1.1.0: Support for click like boolean parser
 
+``` python
+from keyword2cmdline import click_like_command
 
+@click_like_command
+def main(text="Hello world",
+         language='en.US',
+         exclamation_number=2,
+         exclamation_sign="!",
+         exclamation=True):
+    ...
+```
+
+``` bash
+$ python examples/hello_world.py --exclamation False
+Hello world
+```
+
+``` python-console
+>>> from examples.hello_world_click import main
+>>> main(sys_args = ["--exclamation", "False"])
+Hello world
+
+```

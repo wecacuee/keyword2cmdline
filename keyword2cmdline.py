@@ -38,12 +38,15 @@ def argparse_req_defaults(k):
     return dict(option_strings = ("{}".format(k),))
 
 
+default_parser = type
+
+
 class opts(dict):
     """ Token special class """
     pass
 
 
-def argparse_opt_defaults(k, opts_or_default):
+def argparse_opt_defaults(k, opts_or_default, infer_parse):
     default = (opts_or_default.get('default')
                if isinstance(opts_or_default, opts)
                else opts_or_default)
@@ -51,7 +54,7 @@ def argparse_opt_defaults(k, opts_or_default):
                           default = default)
     return (dict(default_apopts, **opts_or_default)
             if isinstance(opts_or_default, opts)
-            else dict(default_apopts, type=type(default)))
+            else dict(default_apopts, type=infer_parse(default)))
 
 
 def foreach_argument(parser, defaults):
@@ -59,7 +62,7 @@ def foreach_argument(parser, defaults):
     parser.add_argument(*option_strings, **defaults)
 
 
-def add_argument_args_from_func_sig(func):
+def add_argument_args_from_func_sig(func, infer_parse=default_parser):
     """
     >>> def main(x, a = 1, b = 2, c = "C"):
     ...     return dict(x = x, a = a, b = b, c = c)
@@ -76,7 +79,7 @@ def add_argument_args_from_func_sig(func):
 
     kwdefaults = func_kwonlydefaults(func)
     for k, deflt in kwdefaults.items():
-        defaults = argparse_opt_defaults(k, deflt)
+        defaults = argparse_opt_defaults(k, deflt, infer_parse)
         parser_add_argument_args[k] = defaults
     return parser_add_argument_args
 
@@ -84,11 +87,12 @@ def add_argument_args_from_func_sig(func):
 def argparser_from_func_sig(func,
                             argparseopts = dict(),
                             parser_factory = argparse.ArgumentParser,
-                            foreach_argument_cb = foreach_argument):
+                            foreach_argument_cb = foreach_argument,
+                            infer_parse = default_parser):
     """
     """
     parser = parser_factory(description=func.__doc__ or "")
-    for k, kw in add_argument_args_from_func_sig(func).items():
+    for k, kw in add_argument_args_from_func_sig(func, infer_parse=infer_parse).items():
         foreach_argument_cb(parser, dict(kw, **argparseopts.get(k, dict())))
     return parser
 
@@ -149,3 +153,49 @@ def command(func,
         return functools.partial(func, **vars(parsed_args))(*args, **kw)
 
     return wrapper
+
+
+def click_like_bool_parse(bool_str):
+    if bool_str not in ["True", "False"]:
+        raise ValueError("Expected either 'True' or 'False' got %s" % bool_str)
+    return (True if bool_str == "True" else False)
+
+
+def click_like_parse(default):
+    if isinstance(default, bool):
+        return click_like_bool_parse
+    else:
+        return default_parser(default)
+
+
+click_like_parser_factory = partial(
+    ArgParserKWArgs,
+    partial(argparser_from_func_sig, infer_parse = click_like_parse))
+
+
+def pcommand(**kw):
+    return partial(command, **kw)
+
+
+click_like_command = pcommand(parser_factory = click_like_parser_factory)
+"""
+>>> @pcommand(parser_factory = click_like_parser_factory)
+... def main(x, a = 1, b = 2, c = "C", d = True):
+...     return dict(x = x, a = a, b = b, c = c, d = d)
+>>> gotx = main(sys_args = ["X"])
+>>> expectedx = {'x': 'X', 'a': 1, 'b': 2, 'c': 'C', 'd' : True}
+>>> gotx == expectedx
+True
+>>> gotY = main(sys_args = "Y --a 2 --c D --d False".split())
+>>> expectedY = {'x': 'Y', 'a': 2, 'b': 2, 'c': 'D', 'd' : False}
+>>> gotY == expectedY
+True
+
+>>> @pcommand(parser_factory = click_like_parser_factory)
+... def main(**kw):
+...     return kw
+>>> got = main(sys_args = "--a 2 --b abc --d False".split())
+>>> expected = {'b': 'abc', 'a': '2', 'd': 'False'}
+>>> got == expected
+True
+"""
