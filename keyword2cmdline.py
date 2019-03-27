@@ -3,6 +3,8 @@ import inspect
 import sys
 import argparse
 from functools import partial
+import enum
+import json
 
 
 def func_required_args_from_sig(func):
@@ -38,7 +40,16 @@ def argparse_req_defaults(k):
     return dict(option_strings = ("{}".format(k),))
 
 
-default_parser = type
+def default_parser(default):
+    if isinstance(default, enum.Enum):
+        return dict(type=type(default).__getitem__,
+                    choices=list(type(default)))
+    elif isinstance(default, dict):
+        return dict(type=lambda s: dict(default, **json.loads(s)))
+    elif isinstance(default, list):
+        return dict(type=json.loads)
+    else:
+        return dict(type=type(default))
 
 
 class opts(dict):
@@ -54,7 +65,7 @@ def argparse_opt_defaults(k, opts_or_default, infer_parse):
                           default = default)
     return (dict(default_apopts, **opts_or_default)
             if isinstance(opts_or_default, opts)
-            else dict(default_apopts, type=infer_parse(default)))
+            else dict(default_apopts, **infer_parse(default)))
 
 
 def foreach_argument(parser, defaults):
@@ -163,7 +174,7 @@ def click_like_bool_parse(bool_str):
 
 def click_like_parse(default):
     if isinstance(default, bool):
-        return click_like_bool_parse
+        return dict(type=click_like_bool_parse)
     else:
         return default_parser(default)
 

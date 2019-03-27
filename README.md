@@ -181,3 +181,39 @@ Hello world
 Hello world
 
 ```
+
+## New feature in v1.2.0: Support for lists, dicts and enums
+
+
+``` python-console
+>>> from keyword2cmdline import command
+>>> from enum import Enum
+>>> @command
+... def main(text="Hello world",
+...          language=Enum('Lang', 'en_US hi_IN').en_US,
+...          exclamation_props=dict(number=2, sign="!"),
+...          exclamation=True):
+...     return dict(sorted(locals().items()))
+...
+>>> main(sys_args = [])
+{'exclamation': True, 'exclamation_props': {'number': 2, 'sign': '!'}, 'language': <Lang.en_US: 1>, 'text': 'Hello world'}
+>>> main(sys_args = ["--exclamation", ""])
+{'exclamation': False, 'exclamation_props': {'number': 2, 'sign': '!'}, 'language': <Lang.en_US: 1>, 'text': 'Hello world'}
+>>> main(sys_args = ["--language", "hi_IN"])
+{'exclamation': True, 'exclamation_props': {'number': 2, 'sign': '!'}, 'language': <Lang.hi_IN: 2>, 'text': 'Hello world'}
+>>> main(sys_args = ["--exclamation_props", '{"number": 3}'])
+{'exclamation': True, 'exclamation_props': {'number': 3, 'sign': '!'}, 'language': <Lang.en_US: 1>, 'text': 'Hello world'}
+
+>>> from keyword2cmdline import click_like_command
+>>> from enum import Enum
+>>> @click_like_command
+... def main(text="Hello world",
+...          language=Enum('Lang', 'en_US hi_IN').en_US,
+...          exclamation_props=dict(number=2, sign="!"),
+...          exclamation=True):
+...     return dict(sorted(locals().items()))
+...
+>>> main(sys_args = ["--exclamation", "False"])
+{'exclamation': False, 'exclamation_props': {'number': 2, 'sign': '!'}, 'language': <Lang.en_US: 1>, 'text': 'Hello world'}
+
+```
