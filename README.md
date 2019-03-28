@@ -182,7 +182,7 @@ Hello world
 
 ```
 
-## New feature in v1.3.0: Support for lists, dicts and enums
+## New feature in v1.3.0: Support for argcomplete, lists, dicts and enums
 
 `list` and `dict` are parsed using `json.loads`. `dict` are merged with the
 default `dict` argument. `enum.Enum` are converted to strings and the
