@@ -195,28 +195,28 @@ object which might use long names to support `argcomplete` feature consistently.
 >>> @command
 ... def main(text="Hello world",
 ...          language=EnumChoice('Lang', 'en_US hi_IN').en_US,
-...          exclamation_props=dict(number=2, sign="!"),
+...          exclamation_props=dict(number=2),
 ...          exclamation=True):
 ...     return sorted(locals().items())
 ...
 >>> main(sys_args = [])
-[('exclamation', True), ('exclamation_props', {'number': 2, 'sign': '!'}), ('language', <Lang.en_US: 1>), ('text', 'Hello world')]
+[('exclamation', True), ('exclamation_props', {'number': 2}), ('language', <Lang.en_US: 1>), ('text', 'Hello world')]
 >>> main(sys_args = ["--exclamation", ""])
-[('exclamation', False), ('exclamation_props', {'number': 2, 'sign': '!'}), ('language', <Lang.en_US: 1>), ('text', 'Hello world')]
+[('exclamation', False), ('exclamation_props', {'number': 2}), ('language', <Lang.en_US: 1>), ('text', 'Hello world')]
 >>> main(sys_args = ["--language", "hi_IN"])
-[('exclamation', True), ('exclamation_props', {'number': 2, 'sign': '!'}), ('language', <Lang.hi_IN: 2>), ('text', 'Hello world')]
+[('exclamation', True), ('exclamation_props', {'number': 2}), ('language', <Lang.hi_IN: 2>), ('text', 'Hello world')]
 >>> main(sys_args = ["--exclamation_props", '{"number": 3}'])
-[('exclamation', True), ('exclamation_props', {'number': 3, 'sign': '!'}), ('language', <Lang.en_US: 1>), ('text', 'Hello world')]
+[('exclamation', True), ('exclamation_props', {'number': 3}), ('language', <Lang.en_US: 1>), ('text', 'Hello world')]
 
 >>> from keyword2cmdline import click_like_command
 >>> @click_like_command
 ... def main(text="Hello world",
 ...          language=EnumChoice('Lang', 'en_US hi_IN').en_US,
-...          exclamation_props=dict(number=2, sign="!"),
+...          exclamation_props=dict(number=2),
 ...          exclamation=True):
 ...     return sorted(locals().items())
 ...
 >>> main(sys_args = ["--exclamation", "False"])
-[('exclamation', False), ('exclamation_props', {'number': 2, 'sign': '!'}), ('language', <Lang.en_US: 1>), ('text', 'Hello world')]
+[('exclamation', False), ('exclamation_props', {'number': 2}), ('language', <Lang.en_US: 1>), ('text', 'Hello world')]
 
 ```
