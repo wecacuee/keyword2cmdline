@@ -1,10 +1,50 @@
+from collections import OrderedDict
+from functools import partial
+from operator import getitem
+import argparse
+import enum
 import functools
 import inspect
-import sys
-import argparse
-from functools import partial
-import enum
 import json
+import os
+import sys
+
+
+def unwrapped(func):
+    if isinstance(func, partial):
+        return unwrapped(func.func)
+    elif hasattr(func, "__wrapped__"):
+        return unwrapped(func.__wrapped__)
+    else:
+        return func
+
+
+def try_get_argcomplete():
+    try:
+        import argcomplete
+        return argcomplete
+    except ImportError:
+        if os.environ.get("_ARC_DEBUG"):
+            print("_ARC_DEBUG: argcomplete not installed")
+        return None
+
+
+def try_autocomplete(argparser):
+    argparser = unwrapped(argparser)
+    if not isinstance(argparser, argparse.ArgumentParser):
+        if os.environ.get("_ARC_DEBUG"):
+            print("_ARC_DEBUG: parser is not ArgumentParser")
+        return
+
+    argcomplete = try_get_argcomplete()
+    if argcomplete:
+        assert isinstance(argparser, argparse.ArgumentParser)
+        argcomplete.autocomplete(argparser)
+        if os.environ.get("_ARC_DEBUG"):
+            print("_ARC_DEBUG: argcomplete enabled")
+        return True
+
+    return
 
 
 def func_required_args_from_sig(func):
@@ -20,6 +60,13 @@ def func_kwonlydefaults_from_sig(func):
             for k, p in inspect.signature(func).parameters.items()
             if p.default is not inspect._empty and
             p.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD}
+
+
+def kw_attributify(func):
+    for k, default in func_kwonlydefaults_from_sig(func).items():
+        if not hasattr(func, k):
+            setattr(func, k, default)
+    return func
 
 
 def func_kwonlydefaults(func):
@@ -40,16 +87,47 @@ def argparse_req_defaults(k):
     return dict(option_strings = ("{}".format(k),))
 
 
-def default_parser(default):
-    if isinstance(default, enum.Enum):
-        return dict(type=type(default).__getitem__,
-                    choices=list(type(default)))
-    elif isinstance(default, dict):
-        return dict(type=lambda s: dict(default, **json.loads(s)))
-    elif isinstance(default, list):
-        return dict(type=json.loads)
+class EnumChoice(enum.Enum):
+    def __str__(self):
+        return self.name
+
+
+def enum_parser(default):
+    assert isinstance(default, enum.Enum)
+    enumclass = type(default)
+    if try_get_argcomplete():
+        # autocomplete does not uses metavar instead uses str(choices)
+        str2val = {str(v): v for v in enumclass}
     else:
-        return dict(type=type(default))
+        str2val = {v.name: v for v in enumclass}
+
+    return dict(type=partial(getitem, str2val),
+                choices=list(enumclass),
+                metavar=str2val.keys())
+
+
+def dict_parser(default):
+    assert isinstance(default, dict)
+    return dict(type=lambda s: dict(default, **json.loads(s)))
+
+
+def list_parser(default):
+    assert isinstance(default, (list, tuple))
+    return dict(type=json.loads)
+
+
+@kw_attributify
+def default_parser(default,
+                   fallback_parser=lambda x: dict(type=type(x)),
+                   type2parser=OrderedDict([
+                       (enum.Enum, enum_parser),
+                       (dict, dict_parser),
+                       (list, list_parser),
+                       (tuple, list_parser)])):
+    for t, parser in type2parser.items():
+        if isinstance(default, t):
+            return parser(default)
+    return fallback_parser(default)
 
 
 class opts(dict):
@@ -113,6 +191,7 @@ class ArgParserKWArgs:
         self.parser = parser_fac(func)
         self.func = func
         self.type_conv = type_conv
+        self.__wrapped__ = self.parser
 
     def _accepts_var_kw(self, func):
         return any(p.kind == inspect.Parameter.VAR_KEYWORD
@@ -154,6 +233,7 @@ def command(func,
     True
     """
     parser = parser_factory(func)
+    try_autocomplete(parser)
 
     @functools.wraps(func)
     def wrapper(sys_args = None, *args, **kw):
@@ -171,12 +251,21 @@ def click_like_bool_parse(bool_str):
         raise ValueError("Expected either 'True' or 'False' got %s" % bool_str)
     return (True if bool_str == "True" else False)
 
+def click_like_bool_parser(bool_default):
+    assert isinstance(bool_default, bool)
+    return dict(type=click_like_bool_parse,
+                choices=(True, False))
 
-def click_like_parse(default):
-    if isinstance(default, bool):
-        return dict(type=click_like_bool_parse)
-    else:
-        return default_parser(default)
+
+def merge(d1, d2):
+    dc = d1.copy()
+    dc.update(d2)
+    return dc
+
+
+click_like_parse = partial(default_parser,
+                           type2parser=merge(default_parser.type2parser,
+                                             { bool: click_like_bool_parser }))
 
 
 click_like_parser_factory = partial(

@@ -1,14 +1,17 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 
 from keyword2cmdline import command, opts
+from enum import Enum
 
+Lang = Enum('Lang', 'en_US hi_IN')
 TRANSLATIONS = {
-    ("Hello world", "hi.IN"): "नमस्ते दुनिया"}
+    ("Hello world", Lang.hi_IN): "नमस्ते दुनिया"}
 
 
 @command
 def main(text="Hello world",
-         language='en.US',
+         language=Lang.en_US,
          exclamation_number=2,
          exclamation_sign="!",
          # Pass arbitrary keyword arguments to the

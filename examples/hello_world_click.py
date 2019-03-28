@@ -1,14 +1,16 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 
-from keyword2cmdline import click_like_command
+from keyword2cmdline import click_like_command, EnumChoice
 
+Lang = EnumChoice('Lang', 'en_US hi_IN')
 TRANSLATIONS = {
-    ("Hello world", "hi.IN"): "नमस्ते दुनिया"}
+    ("Hello world", Lang.hi_IN): "नमस्ते दुनिया"}
 
 
 @click_like_command
 def main(text="Hello world",
-         language='en.US',
+         language=Lang.en_US,
          exclamation_number=2,
          exclamation_sign="!",
          exclamation=True):

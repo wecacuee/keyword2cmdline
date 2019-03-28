@@ -1,4 +1,5 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 
 from keyword2cmdline import command
 

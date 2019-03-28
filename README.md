@@ -182,15 +182,19 @@ Hello world
 
 ```
 
-## New feature in v1.2.0: Support for lists, dicts and enums
+## New feature in v1.3.0: Support for lists, dicts and enums
 
+`list` and `dict` are parsed using `json.loads`. `dict` are merged with the
+default `dict` argument. `enum.Enum` are converted to strings and the
+corresponding string can be converted back to the enum object. A convenience
+class `keyword2cmdline.EnumChoice` is provided for using shortnames for `enum`
+object which might use long names to support `argcomplete` feature consistently.
 
 ``` python-console
->>> from keyword2cmdline import command
->>> from enum import Enum
+>>> from keyword2cmdline import command, EnumChoice
 >>> @command
 ... def main(text="Hello world",
-...          language=Enum('Lang', 'en_US hi_IN').en_US,
+...          language=EnumChoice('Lang', 'en_US hi_IN').en_US,
 ...          exclamation_props=dict(number=2, sign="!"),
 ...          exclamation=True):
 ...     return dict(sorted(locals().items()))
@@ -205,10 +209,9 @@ Hello world
 {'exclamation': True, 'exclamation_props': {'number': 3, 'sign': '!'}, 'language': <Lang.en_US: 1>, 'text': 'Hello world'}
 
 >>> from keyword2cmdline import click_like_command
->>> from enum import Enum
 >>> @click_like_command
 ... def main(text="Hello world",
-...          language=Enum('Lang', 'en_US hi_IN').en_US,
+...          language=EnumChoice('Lang', 'en_US hi_IN').en_US,
 ...          exclamation_props=dict(number=2, sign="!"),
 ...          exclamation=True):
 ...     return dict(sorted(locals().items()))
