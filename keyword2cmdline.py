@@ -349,6 +349,7 @@ def click_like_bool_parse(bool_str):
         raise ValueError("Expected either 'True' or 'False' got %s" % bool_str)
     return (True if bool_str == "True" else False)
 
+
 def click_like_bool_parser(bool_default):
     assert isinstance(bool_default, bool)
     return dict(type=click_like_bool_parse,
@@ -361,10 +362,13 @@ def merge(d1, d2):
     return dc
 
 
+click_type2parser = merge(default_parser.type2parser,
+                          { bool: click_like_bool_parser })
+
+
 click_like_parser_factory = recpartial(
     ArgParserKWArgs,
-    {"parser_factory.infer_parse.type2parser":
-     merge(default_parser.type2parser, { bool: click_like_bool_parser })})
+    {"parser_factory.infer_parse.type2parser": click_type2parser})
 
 
 click_like_parser_factory_kwonly = recpartial(
