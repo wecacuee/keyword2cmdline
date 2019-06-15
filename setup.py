@@ -14,8 +14,9 @@ setup(name='keyword2cmdline',
           "Operating System :: OS Independent",
       ),
       python_requires='>=3.5',
-      py_modules=['keyword2cmdline', 'functoolsplus'],
+      py_modules=['keyword2cmdline'],
       setup_requires=["pytest-runner"],
+      install_requires=["kwplus"],
       tests_require=["pytest"],
       extras_require={
           'argcomplete': ['argcomplete']
