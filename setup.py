@@ -15,7 +15,6 @@ setup(name='keyword2cmdline',
       ),
       python_requires='>=3.5',
       py_modules=['keyword2cmdline', 'functoolsplus'],
-      install_requires=['kwplus'],
       setup_requires=["pytest-runner"],
       tests_require=["pytest"],
       extras_require={

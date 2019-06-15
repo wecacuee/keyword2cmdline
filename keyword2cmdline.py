@@ -9,7 +9,7 @@ import json
 import os
 import sys
 from abc import ABC, abstractmethod
-from functoolsplus import recpartial
+from kwplus.functools import recpartial
 
 
 ## Copied from _collections_abc.py
@@ -190,6 +190,7 @@ class ArgumentParser(argparse.ArgumentParser):
         kwargs = dict(description=func.__doc__ or "")
         kwargs.update(parent_kwargs)
         super().__init__(**kwargs)
+        self.add_all_arguments()
 
     def argparse_add_argument_map(self):
         return add_argument_args_from_func_sig(
@@ -207,8 +208,7 @@ class ArgumentParser(argparse.ArgumentParser):
         super().add_argument(*option_strings, **defaults)
 
     def parse_args(self, *a, **kw):
-        self.add_all_arguments()
-        super().parse_args(*a, **kw)
+        return super().parse_args(*a, **kw)
 
 
 class ExtCommand(ABC):
