@@ -8,6 +8,22 @@ import inspect
 import json
 import os
 import sys
+from abc import ABC, abstractmethod
+from kwplus import recpartial
+
+
+## Copied from _collections_abc.py
+def _check_methods(C, *methods):
+    mro = C.__mro__
+    for method in methods:
+        for B in mro:
+            if method in B.__dict__:
+                if B.__dict__[method] is None:
+                    return NotImplemented
+                break
+        else:
+            return NotImplemented
+    return True
 
 
 def unwrapped(func):
@@ -146,12 +162,75 @@ def argparse_opt_defaults(k, opts_or_default, infer_parse):
             else dict(default_apopts, **infer_parse(default)))
 
 
-def foreach_argument(parser, defaults):
-    option_strings = defaults.pop('option_strings')
-    parser.add_argument(*option_strings, **defaults)
+class Parser(ABC):
+    @abstractmethod
+    def parse_args(self, sys_args):
+        """
+        Mimics ArgumentParser.parser_args method
+        """
+        pass
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        if cls is Parser:
+            return _check_methods(C, "parse_args")
+        return NotImplemented
 
 
-def add_argument_args_from_func_sig(func, infer_parse=default_parser):
+Parser.register(argparse.ArgumentParser)
+
+class ArgumentParser(argparse.ArgumentParser):
+    def __init__(self, func, infer_parse=default_parser, argparseopts=dict(),
+                 kwonly=False,
+                 parent_kwargs={}):
+        self.func = func
+        self.infer_parse = infer_parse
+        self.argparseopts = argparseopts
+        self.kwonly = kwonly
+        kwargs = dict(description=func.__doc__ or "")
+        kwargs.update(parent_kwargs)
+        super().__init__(**kwargs)
+        self.add_all_arguments()
+
+    def argparse_add_argument_map(self):
+        return add_argument_args_from_func_sig(
+            self.func,
+            infer_parse=self.infer_parse,
+            kwonly=self.kwonly)
+
+    def add_all_arguments(self):
+        for k, kw in self.argparse_add_argument_map().items():
+            self.add_argument(**dict(kw, **self.argparseopts.get(k, dict())))
+
+    def add_argument(self, *option_strings, **defaults):
+        if not option_strings:
+            option_strings = defaults.pop('option_strings')
+        super().add_argument(*option_strings, **defaults)
+
+
+class ExtCommand(ABC):
+    """
+    Defines a special type that allows keyword2cmdline to recursively get
+    commandline arguments from partial keywords.
+    """
+    @property
+    @abstractmethod
+    def parser(self):
+        """
+        Must return a Parser object
+        """
+        return
+
+    @classmethod
+    def __instancecheck__(cls, obj):
+        return (hasattr(obj, "parser")
+                and hasattr(obj.parser, "argparse_add_argument_map"))
+
+ExtCommand.register(ArgumentParser)
+
+
+def add_argument_args_from_func_sig(func, infer_parse=default_parser, sep=".",
+                                    kwonly=False):
     """
     >>> def main(x, a = 1, b = 2, c = "C"):
     ...     return dict(x = x, a = a, b = b, c = c)
@@ -161,37 +240,34 @@ def add_argument_args_from_func_sig(func, infer_parse=default_parser):
     True
     """
     parser_add_argument_args = dict()
-    required_args = func_required_args_from_sig(func)
-    for k in required_args:
-        defaults = argparse_req_defaults(k)
-        parser_add_argument_args[k] = defaults
+    if not kwonly:
+        required_args = func_required_args_from_sig(func)
+        for k in required_args:
+            defaults = argparse_req_defaults(k)
+            parser_add_argument_args[k] = defaults
 
     kwdefaults = func_kwonlydefaults(func)
     for k, deflt in kwdefaults.items():
-        defaults = argparse_opt_defaults(k, deflt, infer_parse)
-        parser_add_argument_args[k] = defaults
+        if ExtCommand.__instancecheck__(deflt):
+            for ext_k, ext_deflt in deflt.parser.argparse_add_argument_map().items():
+                new_key = sep.join((k, ext_k))
+                ext_deflt['option_strings'] = ["--" + new_key]
+                parser_add_argument_args[new_key] = ext_deflt
+        else:
+            defaults = argparse_opt_defaults(k, deflt, infer_parse)
+            parser_add_argument_args[k] = defaults
     return parser_add_argument_args
 
 
-def argparser_from_func_sig(func,
-                            argparseopts = dict(),
-                            parser_factory = argparse.ArgumentParser,
-                            foreach_argument_cb = foreach_argument,
-                            infer_parse = default_parser):
-    """
-    """
-    parser = parser_factory(description=func.__doc__ or "")
-    for k, kw in add_argument_args_from_func_sig(func, infer_parse=infer_parse).items():
-        foreach_argument_cb(parser, dict(kw, **argparseopts.get(k, dict())))
-    return parser
-
-
-class ArgParserKWArgs:
+class ArgParserKWArgs(Parser):
     def __init__(self, parser_fac, func, type_conv=str, **kw):
         self.parser = parser_fac(func)
         self.func = func
         self.type_conv = type_conv
         self.__wrapped__ = self.parser
+
+    def argparse_add_argument_map(self):
+        return self.parser.argparse_add_argument_map()
 
     def _accepts_var_kw(self, func):
         return any(p.kind == inspect.Parameter.VAR_KEYWORD
@@ -207,9 +283,17 @@ class ArgParserKWArgs:
         return self.parser.parse_args(sys_args)
 
 
+def command_config(func,
+                   parser_factory = partial(ArgParserKWArgs,
+                                            partial(ArgumentParser, kwonly=True))):
+    parser = parser_factory(func)
+    func.parser = parser
+    return func
+
+
 def command(func,
             parser_factory = partial(ArgParserKWArgs,
-                                     argparser_from_func_sig),
+                                     ArgumentParser),
             sys_args_gen = lambda: sys.argv[1:]):
     """
     >>> @command
@@ -234,6 +318,8 @@ def command(func,
     """
     parser = parser_factory(func)
     try_autocomplete(parser)
+    if not isinstance(parser, Parser):
+        raise ValueError("parser_factory should return keyword2cmdline.Parser object")
 
     @functools.wraps(func)
     def wrapper(sys_args = None, *args, **kw):
@@ -241,7 +327,7 @@ def command(func,
         parsed_args = parser.parse_args(sys_args_gen()
                                         if sys_args is None
                                         else sys_args)
-        return functools.partial(func, **vars(parsed_args))(*args, **kw)
+        return recpartial(func, vars(parsed_args))(*args, **kw)
 
     return wrapper
 
@@ -270,7 +356,7 @@ click_like_parse = partial(default_parser,
 
 click_like_parser_factory = partial(
     ArgParserKWArgs,
-    partial(argparser_from_func_sig, infer_parse = click_like_parse))
+    partial(ArgumentParser, infer_parse = click_like_parse))
 
 
 def pcommand(**kw):
