@@ -143,7 +143,8 @@ optional arguments:
   --exclamation_number EXCLAMATION_NUMBER
 ```
 
-## New feature in v1.0: Support for Variational **kwargs
+## Support for Variational **kwargs
+(New feature in v1.0)
 
 ``` python-console
 >>> from keyword2cmdline import command
@@ -157,7 +158,8 @@ optional arguments:
 
 ```
 
-## New feature in v1.1.0: Support for click like boolean parser
+## Support for click like boolean parser
+(New feature in v1.0)
 
 ``` python
 from keyword2cmdline import click_like_command
