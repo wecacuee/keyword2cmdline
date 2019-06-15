@@ -260,8 +260,8 @@ def add_argument_args_from_func_sig(func, infer_parse=default_parser, sep=".",
 
 
 class ArgParserKWArgs(Parser):
-    def __init__(self, parser_fac, func, type_conv=str, **kw):
-        self.parser = parser_fac(func)
+    def __init__(self, func, parser_factory=ArgumentParser, type_conv=str, **kw):
+        self.parser = parser_factory(func)
         self.func = func
         self.type_conv = type_conv
         self.__wrapped__ = self.parser
@@ -284,8 +284,9 @@ class ArgParserKWArgs(Parser):
 
 
 def command_config(func,
-                   parser_factory = partial(ArgParserKWArgs,
-                                            partial(ArgumentParser, kwonly=True))):
+                   parser_factory = recpartial(
+                       ArgParserKWArgs,
+                       {"parser_factory.kwonly": True})):
     parser = parser_factory(func)
     func.parser = parser
     return func
@@ -293,8 +294,7 @@ def command_config(func,
 
 class command:
     def __init__(self, func,
-                 parser_factory = partial(ArgParserKWArgs,
-                                          ArgumentParser),
+                 parser_factory = ArgParserKWArgs,
                  sys_args_gen = lambda: sys.argv[1:]):
         """
         >>> @command
@@ -361,18 +361,15 @@ def merge(d1, d2):
     return dc
 
 
-click_like_parse = partial(default_parser,
-                           type2parser=merge(default_parser.type2parser,
-                                             { bool: click_like_bool_parser }))
-
-
-click_like_parser_factory = partial(
+click_like_parser_factory = recpartial(
     ArgParserKWArgs,
-    partial(ArgumentParser, infer_parse = click_like_parse))
+    {"parser_factory.infer_parse.type2parser":
+     merge(default_parser.type2parser, { bool: click_like_bool_parser })})
 
-click_like_parser_factory_kwonly = partial(
-    ArgParserKWArgs,
-    partial(ArgumentParser, infer_parse = click_like_parse, kwonly=True))
+
+click_like_parser_factory_kwonly = recpartial(
+    click_like_parser_factory,
+    {"parser_factory.kwonly": True})
 
 
 def pcommand(**kw):
