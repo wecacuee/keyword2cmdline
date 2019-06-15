@@ -183,7 +183,8 @@ Hello world
 
 ```
 
-## New feature in v1.3.0: Support for argcomplete, lists, dicts and enums
+## Support for argcomplete, lists, dicts and enums
+(New feature in v1.3.0)
 
 `list` and `dict` are parsed using `json.loads`. `dict` are merged with the
 default `dict` argument. `enum.Enum` are converted to strings and the
@@ -219,5 +220,52 @@ object which might use long names to support `argcomplete` feature consistently.
 ...
 >>> main.set_sys_args(["--exclamation", "False"])()
 [('exclamation', False), ('exclamation_props', {'number': 2}), ('language', <Lang.en_US: 1>), ('text', 'Hello world')]
+
+```
+
+
+## Support for recursive configs using command_config
+(New feature in v2.0.0)
+
+Recursive functions are handled by constructing partials of functions 
+that are marked with `@command_config`.
+
+``` python-console
+>>> from keyword2cmdline import command, EnumChoice, command_config
+>>> @command_config
+... def exclamation(number=2,
+...                 sign="!",
+...                 use=True):
+...     return sorted(locals().items())
+>>> @command
+... def main(text="Hello world",
+...          language=EnumChoice('Lang', 'en_US hi_IN').en_US,
+...          exclamation=exclamation):
+...     return [("text", text), ("language", language)] + [
+...            ("exclamation." + k, v)
+...            for k, v in sorted(exclamation.keywords.items()) ]
+>>> main.set_sys_args(["--exclamation.use", "True", "--exclamation.sign", "?"])()
+[('text', 'Hello world'), ('language', <Lang.en_US: 1>), ('exclamation.number', 2), ('exclamation.sign', '?'), ('exclamation.use', True)]
+
+
+A click like handling of booleans is available with `click_like_command_config`
+and `click_like_command`.
+
+``` python-console
+>>> from keyword2cmdline import click_like_command, EnumChoice, click_like_command_config
+>>> @click_like_command_config
+... def exclamation(number=2,
+...                 sign="!",
+...                 use=True):
+...     return sorted(locals().items())
+>>> @click_like_command
+... def main(text="Hello world",
+...          language=EnumChoice('Lang', 'en_US hi_IN').en_US,
+...          exclamation=exclamation):
+...     return [("text", text), ("language", language)] + [
+...            ("exclamation." + k, v)
+...            for k, v in sorted(exclamation.keywords.items()) ]
+>>> main.set_sys_args(["--exclamation.use", "False", "--exclamation.sign", "?"])()
+[('text', 'Hello world'), ('language', <Lang.en_US: 1>), ('exclamation.number', 2), ('exclamation.sign', '?'), ('exclamation.use', False)]
 
 ```

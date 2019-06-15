@@ -370,10 +370,16 @@ click_like_parser_factory = partial(
     ArgParserKWArgs,
     partial(ArgumentParser, infer_parse = click_like_parse))
 
+click_like_parser_factory_kwonly = partial(
+    ArgParserKWArgs,
+    partial(ArgumentParser, infer_parse = click_like_parse, kwonly=True))
+
 
 def pcommand(**kw):
     return partial(command, **kw)
 
+
+click_like_command_config = pcommand(parser_factory = click_like_parser_factory_kwonly)
 
 click_like_command = pcommand(parser_factory = click_like_parser_factory)
 """
