@@ -6,6 +6,7 @@ setup(name='keyword2cmdline',
       url='https://github.com/wecacuee/keyword2cmdline',
       author_email='wecacuee@github.com',
       long_description=open('README.md', encoding='utf-8').read(),
+      long_description_content_type="text/markdown",
       version='2.0.1',
       license='MIT',
       classifiers=(
