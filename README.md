@@ -161,6 +161,14 @@ optional arguments:
 ## Support for click like boolean parser
 (New feature in v1.0)
 
+By default the `@command` follows python convention for string to type
+conversion. For boolean types this is sometimes confusing. Any boolean
+string including "False" will translate to `True` boolean value.
+
+Popular command like library click supports conversion of exact string "True"
+and "False" to `True` and `False` respectively. `@click_like_command` is 
+uses a boolean parser to same effect.
+
 ``` python
 from keyword2cmdline import click_like_command
 
@@ -249,6 +257,7 @@ that are marked with `@command_config`.
 >>> main.set_sys_args(["--exclamation.use", "True", "--exclamation.sign", "?"])()
 [('text', 'Hello world'), ('language', <Lang.en_US: 1>), ('exclamation.number', 2), ('exclamation.sign', '?'), ('exclamation.use', True)]
 
+```
 
 A click like handling of booleans is available with `click_like_command_config`
 and `click_like_command`.
