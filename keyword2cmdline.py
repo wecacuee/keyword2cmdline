@@ -183,6 +183,13 @@ class ArgumentParser(argparse.ArgumentParser):
     def __init__(self, func, infer_parse=default_parser, argparseopts=dict(),
                  kwonly=False,
                  parent_kwargs={}):
+        """
+        >>> def main(x, a = 1, b = 2, c = "C"):
+        ...     return dict(x = x, a = a, b = b, c = c)
+        >>> parser = ArgumentParser(main)
+        >>> isinstance(parser, Parser)
+        True
+        """
         self.func = func
         self.infer_parse = infer_parse
         self.argparseopts = argparseopts
@@ -208,10 +215,31 @@ class ArgumentParser(argparse.ArgumentParser):
         super().add_argument(*option_strings, **defaults)
 
 
-class ExtCommand(ABC):
+class CommandConfig(ABC):
     """
     Defines a special type that allows keyword2cmdline to recursively get
     commandline arguments from partial keywords.
+
+    >>> def main(x, a = 1, b = 2, c = "C"):
+    ...     return dict(x = x, a = a, b = b, c = c)
+    >>> ccmain = command_config(main)
+    >>> isinstance(ccmain, CommandConfig)
+    True
+    >>> isinstance(ccmain.parser, Parser)
+    True
+    >>> cmain = command(main)
+    >>> isinstance(cmain, CommandConfig)
+    True
+    >>> isinstance(cmain.parser, Parser)
+    True
+    >>> clcmain = click_like_command(main)
+    >>> isinstance(clcmain, CommandConfig)
+    True
+    >>> clccmain = click_like_command_config(main)
+    >>> isinstance(clccmain, CommandConfig)
+    True
+    >>> isinstance(clcmain.parser, Parser)
+    True
     """
     @property
     @abstractmethod
@@ -222,11 +250,10 @@ class ExtCommand(ABC):
         return
 
     @classmethod
-    def __instancecheck__(cls, obj):
-        return (hasattr(obj, "parser")
-                and hasattr(obj.parser, "argparse_add_argument_map"))
-
-ExtCommand.register(ArgumentParser)
+    def __subclasshook__(cls, C):
+        if cls is Parser:
+            return _check_methods(C, "parser")
+        return NotImplemented
 
 
 def add_argument_args_from_func_sig(func, infer_parse=default_parser, sep=".",
@@ -248,7 +275,7 @@ def add_argument_args_from_func_sig(func, infer_parse=default_parser, sep=".",
 
     kwdefaults = func_kwonlydefaults(func)
     for k, deflt in kwdefaults.items():
-        if ExtCommand.__instancecheck__(deflt):
+        if isinstance(deflt, CommandConfig) and isinstance(deflt.parser, Parser):
             for ext_k, ext_deflt in deflt.parser.argparse_add_argument_map().items():
                 new_key = sep.join((k, ext_k))
                 ext_deflt['option_strings'] = ["--" + new_key]
@@ -283,16 +310,27 @@ class ArgParserKWArgs(Parser):
         return self.parser.parse_args(sys_args)
 
 
-def command_config(func,
-                   parser_factory = recpartial(
-                       ArgParserKWArgs,
-                       {"parser_factory.kwonly": True})):
-    parser = parser_factory(func)
-    func.parser = parser
-    return func
+class command_config(CommandConfig):
+    def __init__(self, func,
+                 parser_factory = recpartial(
+                     ArgParserKWArgs,
+                     {"parser_factory.kwonly": True})):
+        self.func = func
+        self._parser = parser = parser_factory(func)
+        if not isinstance(self.parser, Parser):
+            raise ValueError("parser_factory should return "
+                             + " keyword2cmdline.Parser object")
+        functools.update_wrapper(self, func)
+
+    @property
+    def parser(self):
+        return self._parser
+
+    def __call__(self, *a, **kw):
+        return self.func(*a, **kw)
 
 
-class command:
+class command(command_config):
     def __init__(self, func,
                  parser_factory = ArgParserKWArgs,
                  sys_args_gen = lambda: sys.argv[1:]):
@@ -317,16 +355,10 @@ class command:
         >>> got == expected
         True
         """
-        self.func = func
-        self.parser_factory = parser_factory
+        super().__init__(func, parser_factory)
         self.sys_args_gen = sys_args_gen
         self._sys_args = None
-        self.parser = parser_factory(func)
         try_autocomplete(self.parser)
-        if not isinstance(self.parser, Parser):
-            raise ValueError("parser_factory should return "
-                             + " keyword2cmdline.Parser object")
-        functools.update_wrapper(self, func)
 
     def set_sys_args(self, sys_args):
         self._sys_args = sys_args
@@ -403,4 +435,5 @@ True
 >>> expected = {'b': 'abc', 'a': '2', 'd': 'False'}
 >>> got == expected
 True
+
 """
