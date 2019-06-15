@@ -54,7 +54,7 @@ Hello world!!
 
 ``` python-console
 >>> from examples.hello_world import main
->>> main(sys_args = [])
+>>> main.set_sys_args([])()
 Hello world!!
 
 ```
@@ -66,7 +66,7 @@ Hello world!!!!!!!!!!
 
 ```python-console
 >>> from examples.hello_world import main
->>> main(sys_args = "--exclamation_number 10".split())
+>>> main.set_sys_args("--exclamation_number 10".split())()
 Hello world!!!!!!!!!!
 
 ```
@@ -78,7 +78,7 @@ $ python examples/hello_world.py --language hi.IN
 
 ```python-console
 >>> from examples.hello_world import main
->>> main(sys_args = "--language hi.IN".split())
+>>> main.set_sys_args("--language hi.IN".split())()
 नमस्ते दुनिया!!
 
 ```
@@ -91,7 +91,7 @@ Hello world
 
 ``` python-console
 >>> from examples.hello_world import main
->>> main(sys_args = ["--exclamation", ""])
+>>> main.set_sys_args( ["--exclamation", ""])()
 Hello world
 
 ```
@@ -151,7 +151,8 @@ optional arguments:
 >>> @command
 ... def main(text="sum", **kw):
 ...     return dict(kw, text=text)
->>> list(sorted(main(sys_args = "--text sum --a 1 --b 2 --c 3".split()).items(), key=first))
+>>> _ = main.set_sys_args(sys_args = "--text sum --a 1 --b 2 --c 3".split())
+>>> list(sorted(main().items(), key=first))
 [('a', '1'), ('b', '2'), ('c', '3'), ('text', 'sum')]
 
 ```
@@ -177,7 +178,7 @@ Hello world
 
 ``` python-console
 >>> from examples.hello_world_click import main
->>> main(sys_args = ["--exclamation", "False"])
+>>> main.set_sys_args( ["--exclamation", "False"])()
 Hello world
 
 ```
@@ -199,13 +200,13 @@ object which might use long names to support `argcomplete` feature consistently.
 ...          exclamation=True):
 ...     return sorted(locals().items())
 ...
->>> main(sys_args = [])
+>>> main.set_sys_args([])()
 [('exclamation', True), ('exclamation_props', {'number': 2}), ('language', <Lang.en_US: 1>), ('text', 'Hello world')]
->>> main(sys_args = ["--exclamation", ""])
+>>> main.set_sys_args(["--exclamation", ""])()
 [('exclamation', False), ('exclamation_props', {'number': 2}), ('language', <Lang.en_US: 1>), ('text', 'Hello world')]
->>> main(sys_args = ["--language", "hi_IN"])
+>>> main.set_sys_args(["--language", "hi_IN"])()
 [('exclamation', True), ('exclamation_props', {'number': 2}), ('language', <Lang.hi_IN: 2>), ('text', 'Hello world')]
->>> main(sys_args = ["--exclamation_props", '{"number": 3}'])
+>>> main.set_sys_args(["--exclamation_props", '{"number": 3}'])()
 [('exclamation', True), ('exclamation_props', {'number': 3}), ('language', <Lang.en_US: 1>), ('text', 'Hello world')]
 
 >>> from keyword2cmdline import click_like_command
@@ -216,7 +217,7 @@ object which might use long names to support `argcomplete` feature consistently.
 ...          exclamation=True):
 ...     return sorted(locals().items())
 ...
->>> main(sys_args = ["--exclamation", "False"])
+>>> main.set_sys_args(["--exclamation", "False"])()
 [('exclamation', False), ('exclamation_props', {'number': 2}), ('language', <Lang.en_US: 1>), ('text', 'Hello world')]
 
 ```

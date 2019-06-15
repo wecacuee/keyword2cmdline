@@ -207,9 +207,6 @@ class ArgumentParser(argparse.ArgumentParser):
             option_strings = defaults.pop('option_strings')
         super().add_argument(*option_strings, **defaults)
 
-    def parse_args(self, *a, **kw):
-        return super().parse_args(*a, **kw)
-
 
 class ExtCommand(ABC):
     """
@@ -294,49 +291,61 @@ def command_config(func,
     return func
 
 
-def command(func,
-            parser_factory = partial(ArgParserKWArgs,
-                                     ArgumentParser),
-            sys_args_gen = lambda: sys.argv[1:]):
-    """
-    >>> @command
-    ... def main(x, a = 1, b = 2, c = "C"):
-    ...     return dict(x = x, a = a, b = b, c = c)
-    >>> gotx = main(sys_args = ["X"])
-    >>> expectedx = {'x': 'X', 'a': 1, 'b': 2, 'c': 'C'}
-    >>> gotx == expectedx
-    True
-    >>> gotY = main(sys_args = "Y --a 2 --c D".split())
-    >>> expectedY = {'x': 'Y', 'a': 2, 'b': 2, 'c': 'D'}
-    >>> gotY == expectedY
-    True
+class command:
+    def __init__(self, func,
+                 parser_factory = partial(ArgParserKWArgs,
+                                          ArgumentParser),
+                 sys_args_gen = lambda: sys.argv[1:]):
+        """
+        >>> @command
+        ... def main(x, a = 1, b = 2, c = "C"):
+        ...     return dict(x = x, a = a, b = b, c = c)
+        >>> gotx = main.set_sys_args(["X"])()
+        >>> expectedx = {'x': 'X', 'a': 1, 'b': 2, 'c': 'C'}
+        >>> gotx == expectedx
+        True
+        >>> gotY = main.set_sys_args("Y --a 2 --c D".split())()
+        >>> expectedY = {'x': 'Y', 'a': 2, 'b': 2, 'c': 'D'}
+        >>> gotY == expectedY
+        True
 
-    >>> @command
-    ... def main(**kw):
-    ...     return kw
-    >>> got = main(sys_args = "--a 2 --b abc".split())
-    >>> expected = {'b': 'abc', 'a': '2'}
-    >>> got == expected
-    True
-    """
-    parser = parser_factory(func)
-    try_autocomplete(parser)
-    if not isinstance(parser, Parser):
-        raise ValueError("parser_factory should return keyword2cmdline.Parser object")
+        >>> @command
+        ... def main(**kw):
+        ...     return kw
+        >>> got = main.set_sys_args("--a 2 --b abc".split())()
+        >>> expected = {'b': 'abc', 'a': '2'}
+        >>> got == expected
+        True
+        """
+        self.func = func
+        self.parser_factory = parser_factory
+        self.sys_args_gen = sys_args_gen
+        self._sys_args = None
+        self.parser = parser_factory(func)
+        try_autocomplete(self.parser)
+        if not isinstance(self.parser, Parser):
+            raise ValueError("parser_factory should return "
+                             + " keyword2cmdline.Parser object")
+        functools.update_wrapper(self, func)
 
-    @functools.wraps(func)
-    def wrapper(sys_args = None, *args, **kw):
+    def set_sys_args(self, sys_args):
+        self._sys_args = sys_args
+        return self
+
+    def __call__(self, *args, **kw):
+        func = self.func
+        parser = self.parser
+        sys_args_gen = self.sys_args_gen
+        _sys_args = self._sys_args
         # parse arguments when the function is actually called
         parsed_args = parser.parse_args(sys_args_gen()
-                                        if sys_args is None
-                                        else sys_args)
+                                        if _sys_args is None
+                                        else _sys_args)
         return recpartial(func, vars(parsed_args))(*args, **kw)
-
-    return wrapper
 
 
 def click_like_bool_parse(bool_str):
-    if bool_str not in ["True", "False"]:
+    if bool_str not in ["", "False"]:
         raise ValueError("Expected either 'True' or 'False' got %s" % bool_str)
     return (True if bool_str == "True" else False)
 
@@ -371,11 +380,11 @@ click_like_command = pcommand(parser_factory = click_like_parser_factory)
 >>> @pcommand(parser_factory = click_like_parser_factory)
 ... def main(x, a = 1, b = 2, c = "C", d = True):
 ...     return dict(x = x, a = a, b = b, c = c, d = d)
->>> gotx = main(sys_args = ["X"])
+>>> gotx = main.set_sys_args(["X"])()
 >>> expectedx = {'x': 'X', 'a': 1, 'b': 2, 'c': 'C', 'd' : True}
 >>> gotx == expectedx
 True
->>> gotY = main(sys_args = "Y --a 2 --c D --d False".split())
+>>> gotY = main.set_sys_args("Y --a 2 --c D --d False".split())()
 >>> expectedY = {'x': 'Y', 'a': 2, 'b': 2, 'c': 'D', 'd' : False}
 >>> gotY == expectedY
 True
@@ -383,7 +392,7 @@ True
 >>> @pcommand(parser_factory = click_like_parser_factory)
 ... def main(**kw):
 ...     return kw
->>> got = main(sys_args = "--a 2 --b abc --d False".split())
+>>> got = main.set_sys_args("--a 2 --b abc --d False".split())()
 >>> expected = {'b': 'abc', 'a': '2', 'd': 'False'}
 >>> got == expected
 True
