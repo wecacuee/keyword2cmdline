@@ -11,8 +11,7 @@ TRANSLATIONS = {
 def exclamation(number=2,
                 sign="!",
                 use=True):
-    return (exclamation_sign * exclamation_number
-            if use else "")
+    return (sign * number if use else "")
 
 
 @command
