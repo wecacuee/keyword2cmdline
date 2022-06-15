@@ -282,5 +282,5 @@ and `click_like_command`.
 ```
 
 ## Related packages
-
+* [Typer](https://github.com/tiangolo/typer)
 * [Clize](https://github.com/epsy/clize)
