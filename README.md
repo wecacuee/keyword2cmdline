@@ -280,3 +280,7 @@ and `click_like_command`.
 [('text', 'Hello world'), ('language', <Lang.en_US: 1>), ('exclamation.number', 2), ('exclamation.sign', '?'), ('exclamation.use', False)]
 
 ```
+
+## Related packages
+
+* [Clize](https://github.com/epsy/clize)
